@@ -1,4 +1,3 @@
-// Library for parsing ILDA data files
 // ildaparser.c
 // Jeff Heidel 2013
 #include "ildaparser.h"
@@ -95,12 +94,12 @@ int readHeader() {
 }
 
 // Format: x, y, z
-uint16_t pointData[3];
+int16_t pointData[3];
 
 // Format blank (boolean), lastpoint (boolean), color
 uint8_t laserData[3];
 
-uint16_t* getPointData() {
+int16_t* getPointData() {
     return pointData;
 }
 

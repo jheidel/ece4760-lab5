@@ -8,3 +8,14 @@ class IldaFrame:
         # List of ((x,y,z), blanking) tuples
         self.points = points
 
+    def get_points(self):
+        pts = {}
+        for ((x,y,z),b) in self.points:
+            pts["x"] = x
+            pts["y"] = y
+            pts["z"] = z
+            pts["blank"] = b
+            yield pts
+
+    
+

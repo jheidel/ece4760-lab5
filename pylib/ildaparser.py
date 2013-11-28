@@ -11,7 +11,7 @@ except:
 
 getPointData = clib.getPointData
 getPointData.argtypes = ()
-getPointData.restype = POINTER(c_uint16)
+getPointData.restype = POINTER(c_int16)
 
 pointData = getPointData() #by reference!
 

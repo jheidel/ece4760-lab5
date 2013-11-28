@@ -26,7 +26,7 @@ uint16_t getFrameNum();
 uint16_t getTotalFrames();
 
 // Provides access to the point / laser data fields
-uint16_t* getPointData();
+int16_t* getPointData();
 uint8_t* getLaserData();
 
 // Loads data into the point & laser data locations
