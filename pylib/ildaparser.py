@@ -72,7 +72,7 @@ class IldaParser:
                 break #Finished parsing
 
 
-    def getFrames(self):
+    def get_frames(self):
         return self.frames
 
     def getTitle(self):

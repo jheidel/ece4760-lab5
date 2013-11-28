@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdint.h>
 
+//#define DEBUG 
+
 #define ENDIANSWAP16(x) \
     do { \
         x = (((x << 8) & 0xFF00) | ((x >> 8) & 0x00FF)); \
@@ -74,6 +76,7 @@ int readHeader() {
     // Unused (byte 32)
     fseek(fp, 1, SEEK_CUR); 
 
+#ifdef DEBUG
     printf("--HEADER PARSE--\n"
             "ILDA format:\t%d\n" 
             "Name:\t\t%s\n"
@@ -90,6 +93,7 @@ int readHeader() {
             ilda_currentframe,
             ilda_totalframes,
             ilda_scannerhead);
+#endif
     return SUCCESS;
 }
 
