@@ -6,11 +6,14 @@
 
 #include <util/delay.h>
 
-#include "uart.h"
+#define UART_BAUD  1000000 // 1 MBaud (max speed of FDTI chip)
+
+
+//#include "uart.h"
 
 // UART file descriptor
 // putchar and getchar are in uart.c
-FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
+//FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
 #define PIN_STATUS_LED	PIN2
 #define PIN_LASER_MOD	PIN3
@@ -27,6 +30,8 @@ FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 #define DD_SCK	5
 #define PIN_CS	2
 
+#define SUCCESS	0
+
 void debug_flash(void) {
 		SET(PORTD, 2);
 		_delay_ms(20);
@@ -41,8 +46,17 @@ void debug_flash(void) {
 		CLR(PORTD, 2);
 }
 
+void indicate_serial_error(void) {
+	for(;;) {
+		FLIP(PORTD, PIN_STATUS_LED);
+		_delay_ms(100);
+	}
+}
 
-void SPI_TX(uint16_t data)
+
+
+
+inline void SPI_TX(uint16_t data)
 {
 	/* Acquire CS */
 	PORTB &= ~(1<<PIN_CS);
@@ -74,19 +88,83 @@ void dac_setup(void) {
 
 	// Transmit control
 	// Set 2.048V internal reference on ref pin
-	// Set slow mode
-	SPI_TX(0x9002);
+	SPI_TX(0xD002);
+}
+
+void uart_setup(void) {
+
+// Setup baud rate & 8n1
+
+#if F_CPU < 2000000UL && defined(U2X)
+  UCSR0A = _BV(U2X);             /* improve baud rate error by using 2x clk */
+  UBRR0L = (F_CPU / (8UL * UART_BAUD)) - 1;
+#else
+  UBRR0L = (F_CPU / (16UL * UART_BAUD)) - 1;
+#endif
+  UCSR0B = _BV(TXEN0) | _BV(RXEN0); /* tx/rx enable */
+
+
+
+}
+
+inline char uart_get(uint16_t* ret) {
+    *ret = 0;
+
+	loop_until_bit_is_set(UCSR0A, RXC0);
+	if (UCSR0A & _BV(FE0))
+	  return _FDEV_EOF;
+	if (UCSR0A & _BV(DOR0))
+	  return _FDEV_ERR;
+
+	*ret |= UDR0 << 8;
+
+	loop_until_bit_is_set(UCSR0A, RXC0);
+	if (UCSR0A & _BV(FE0))
+	  return _FDEV_EOF;
+	if (UCSR0A & _BV(DOR0))
+	  return _FDEV_ERR;
+
+	*ret |= UDR0;
+	return 0;
 }
 
 
+uint16_t x;
+uint16_t y;
+char ret;
+char blank;
+
+inline void readwrite() {
+
+	ret = uart_get(&x); // TODO check for success
+	if (ret != SUCCESS) indicate_serial_error();
+
+	SPI_TX((x & 0x0FFF) | 0x5000); // Set B
+	SPI_TX((x & 0x0FFF) | 0x5000); // Do it again (unknown reason; chip bug?)
+
+	ret = uart_get(&y); // TODO check for success
+	if (ret != SUCCESS) indicate_serial_error();
+
+	SPI_TX((y & 0x0FFF) | 0xC000); // Set A (update both)
+	SPI_TX((y & 0x0FFF) | 0xC000); // Do it again (unknown reason; chip bug?)
+
+	if ((x >> 12) & 0x01) { //blanking bit
+		PORTD &= ~((1<<PIN_STATUS_LED) | (1<<PIN_LASER_MOD));
+	} else {
+		PORTD |= (1<<PIN_STATUS_LED) | (1<<PIN_LASER_MOD);
+	}
+}
 
 
+/*
 void dac_write(uint16_t aValue, uint16_t bValue) {
-	/* TODO: writing to buffer isn't working... */
-	SPI_TX((bValue & 0x0FFF) | 0x1000); // Set B
-	SPI_TX((aValue & 0x0FFF) | 0x8000); // Set A (update both)
-}
 
+	SPI_TX((bValue & 0x0FFF) | 0x5000); // Set B
+	SPI_TX((bValue & 0x0FFF) | 0x5000); // Do it again (unknown reason; chip bug?)
+	SPI_TX((aValue & 0x0FFF) | 0xC000); // Set A (update both)
+	SPI_TX((aValue & 0x0FFF) | 0xC000); // Do it again (unknown reason; chip bug?)
+}
+*/
 
 void initialize(void) {
 
@@ -94,12 +172,9 @@ void initialize(void) {
 	PORTD = 0;
 
 	dac_setup();
+	uart_setup();
 
-	uart_init();
-	stdout = stdin = stderr = &uart_str;
-
-	fprintf(stdout, "\n\n== LASER CONTROLLER ==\n");
-
+	debug_flash();
 }
 
 uint16_t i;
@@ -107,17 +182,7 @@ int main(void) {
 
 	initialize();
 
-	for (;;) {
-		fprintf(stdout, "Enter DAC value (between 0 and 4095):\n> ");
-		fscanf(stdin, "%d", &i);
-
-		if (i < 0x0000 || i > 0x0FFF) {
-			fprintf(stdout, "VALUE %d OUT OF RANGE\n", i);
-		} else {
-			fprintf(stdout, "Setting DAC channels to %d\n", i);
-			dac_write(i, i);
-			debug_flash();
-		}
-
+	for(;;) {
+		readwrite();
 	}
 }
