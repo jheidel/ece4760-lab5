@@ -1,6 +1,7 @@
 # Object files
 *.o
 *.ko
+*.d
 
 # Libraries
 *.lib
@@ -16,3 +17,6 @@
 *.exe
 *.out
 *.app
+
+#Python
+*.pyc
