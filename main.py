@@ -11,7 +11,10 @@ from time import sleep
 
 
 p = IldaParser(sys.argv[1])
-port = sys.argv[2]
+if len(sys.argv) > 2:
+    port = sys.argv[2]
+else:
+    port = None
 
 class FramePlayer(Thread):
     def __init__(self, lv, p, ser):
@@ -30,7 +33,8 @@ class FramePlayer(Thread):
         while True:
             for f in self.p.get_frames():
                 self.lv.set_frame(f)
-                self.ser.set_frame(f)
+                if self.ser is not None:
+                    self.ser.set_frame(f)
                 self.kill.wait(1.0/self.FPS)
                 if (self.kill.is_set()):
                     return
@@ -41,7 +45,8 @@ class MainGUI:
     def window_destroy(self, event):
         Gtk.main_quit()
         self.player.stop()
-        self.serial.stop()
+        if self.serial is not None:
+            self.serial.stop()
         self.log.info("Bye!")
 
     def __init__(self):
@@ -59,9 +64,12 @@ class MainGUI:
 
         #self.laserviz.set_frame(p.frames[0])
         
-        self.serial = SerialComm(port)
-        self.serial.set_frame(p.frames[0])
-        self.serial.start()
+        if port is not None:
+            self.serial = SerialComm(port)
+            self.serial.set_frame(p.frames[0])
+            self.serial.start()
+        else:
+            self.serial = None
 
         self.player = FramePlayer(self.laserviz, p, self.serial)
 
