@@ -133,6 +133,7 @@ int sleep_until(struct timespec* t) {
     return EXIT_NORMAL;
 }
 
+#define SQDIST(x,y) (x*x+y*y)
 
 int scanner_main() {
     struct timespec cur;
@@ -141,29 +142,54 @@ int scanner_main() {
 
     int scan_index = 0;
     int size = 0;
+    int blank_override = 0;
     laserpoint* scan_array = NULL;
 
     while(!stop_flag) {
 
-        //if(scan_index == 0) {
-            pthread_mutex_lock(&lock);
-            if (scan_array != active) {
-                if (scan_array != NULL) free(scan_array);
-                scan_array = active;
-                scan_index = 0;
-                size = active_size;
+        pthread_mutex_lock(&lock);
+        if (scan_array != active) { // Switching frames!
+            int px, py, min, min_index, i;
+            min_index = 0;
+            if (scan_array != NULL) {
+                px = scan_array[scan_index].x; // present coordinate
+                py = scan_array[scan_index].y;
+
+                // Find the closest point in the new array to the currently scanned point
+                if (active != NULL) {
+                    min = SQDIST(px - active[0].x, py - active[0].y);
+                    for (i = 1; i < active_size; i++) {
+                        int m = SQDIST(px - active[i].x, py - active[i].y);
+                        if (m < min) {
+                            min = m;
+                            min_index = i;
+                        }
+                    }
+                }
             }
-            pthread_mutex_unlock(&lock);
-        //}
-        
+
+            // Swap out the frame buffer and free old buffer
+            if (scan_array != NULL) free(scan_array);
+            scan_array = active;
+            scan_index = min_index; // start scanning at the closest point in the new frame
+            size = active_size;
+
+            // Do a blank scan to the first point of the new frame
+            blank_override = 1;
+        }
+        pthread_mutex_unlock(&lock);
+    
         if (scan_array != NULL) {
             //printf("Scan of index %d\n", scan_index);
-            serial_new_point(scan_array[scan_index].x, scan_array[scan_index].y, scan_array[scan_index].blank);
+            serial_new_point(scan_array[scan_index].x, scan_array[scan_index].y, blank_override ? 1 /*force blanking*/ : scan_array[scan_index].blank);
             scan_index++;
+
+            // wrap scan if overflow
             if (scan_index > size) {
                 scan_index = 0;
             }
         }
+        blank_override = 0;
 
         // sleep until next iteration
         add_nanoseconds(&cur, BILLION/setting_pps);
