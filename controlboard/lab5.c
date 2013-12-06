@@ -146,13 +146,15 @@ inline void readwrite() {
 	if (ret != SUCCESS) indicate_serial_error();
 
 	SPI_TX((y & 0x0FFF) | 0xC000); // Set A (update both)
-	SPI_TX((y & 0x0FFF) | 0xC000); // Do it again (unknown reason; chip bug?)
-
+	
 	if ((x >> 12) & 0x01) { //blanking bit
 		PORTD &= ~((1<<PIN_STATUS_LED) | (1<<PIN_LASER_MOD));
 	} else {
 		PORTD |= (1<<PIN_STATUS_LED) | (1<<PIN_LASER_MOD);
 	}
+	
+	SPI_TX((y & 0x0FFF) | 0xC000); // Do it again (unknown reason; chip bug?)
+
 }
 
 
