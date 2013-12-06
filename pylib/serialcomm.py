@@ -25,7 +25,7 @@ class SerialComm(Thread):
         self.kill = Event()
         self.c = Condition()
         self.frame = None
-        self.set_pps(30000) #default PPS
+        self.set_pps(12000) #default PPS
 
     def set_point(self, x, y, blank):
         """
@@ -46,6 +46,8 @@ class SerialComm(Thread):
 
     def stop(self):
         clib.scanner_stop()
+        sleep(2 * 1.0 / self.pps)
+        self.set_point(0,0,True)
         """
         with self.c:
             self.frame = None
@@ -62,7 +64,7 @@ class SerialComm(Thread):
         if frame is not None:
             if frame != self.frame:
                 self.frame = frame
-                self.log.info("Frame has %d points" % frame.get_length()) 
+                #self.log.debug("Frame has %d points" % frame.get_length()) 
                 clib.new_point_set(frame.get_length())
                 for i,pt in enumerate(frame.get_mapped_points()):
                     clib.set_point_by_index(i, pt["x"], pt["y"], pt["blank"]) 
@@ -83,6 +85,7 @@ class SerialComm(Thread):
         """
         Sets a new scanning speed for the ilda frame
         """
+        self.pps = pps
         self.log.info("Settings laser to %d PPS" % pps)
         clib.scanner_set_pps(pps)
         """
@@ -95,6 +98,7 @@ class SerialComm(Thread):
         #ret = clib.scanner_main()
         #if ret != 0:
         #    raise Exception("SCANNER LIBRARY MAIN RETURNED %d" % ret)
+        pass
         """
         while True:
             with self.c:
@@ -110,8 +114,6 @@ class SerialComm(Thread):
 
                 self.set_ilda_point(pt["x"], pt["y"], pt["blank"])
                 #if t > time():
-                #    sleep(t - time())
-                #else:
                 #    self.log.warning("TIME OVERFLOW")
                 #t += 1.0 / pps
 

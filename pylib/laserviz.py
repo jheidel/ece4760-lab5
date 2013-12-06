@@ -31,6 +31,11 @@ class LaserViz(Gtk.DrawingArea):
         cr.fill()
 
         if self.ildaframe is not None:
+
+            cr.set_source_rgb(255,0,255)
+            cr.move_to(20,20)
+            cr.show_text("Frame points: %d" % self.ildaframe.get_length())
+            
             cr.set_line_width(1.0)
             past_xy = None
             for i,pt in enumerate(self.ildaframe.get_points()):
