@@ -21,5 +21,16 @@ class IldaFrame:
             pts["blank"] = b
             yield pts
 
+    def get_mapped_points(self):
+        pts = {}
+        def map_pt(p):
+            return (p + 2**15) / 16
+        for ((x,y,z),b) in self.points:
+            pts["x"] = map_pt(x)
+            pts["y"] = map_pt(y)
+            pts["blank"] = b
+            yield pts
+
+
     
 

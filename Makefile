@@ -1,7 +1,7 @@
 # Makefile template for shared library
  
 CC = gcc # C++ compiler
-CFLAGS = -fPIC -Wall -Wextra -O2 -Werror -g # C flags
+CFLAGS = -fPIC -Wall -Wextra -O3 -Werror -g # C flags
 LDFLAGS = -shared # linking flags
 RM = rm -f # rm command
 TARGET_LIB = clib/clib.so # target lib

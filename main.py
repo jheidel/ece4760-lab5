@@ -3,6 +3,7 @@ from gi.repository import Gtk, Gdk, GLib
 
 from pylib.ildaparser import IldaParser
 from pylib.laserviz import LaserViz
+from pylib.serialcomm import SerialComm
 from pylib.log import init_logging, with_logging
 
 from threading import Thread, Event
@@ -10,14 +11,16 @@ from time import sleep
 
 
 p = IldaParser(sys.argv[1])
+port = sys.argv[2]
 
 class FramePlayer(Thread):
-    def __init__(self, lv, p):
+    def __init__(self, lv, p, ser):
         Thread.__init__(self)
         self.lv = lv
         self.p = p
         self.kill = Event()
         self.FPS = 15
+        self.ser = ser
         self.start()
 
     def stop(self):
@@ -27,6 +30,7 @@ class FramePlayer(Thread):
         while True:
             for f in self.p.get_frames():
                 self.lv.set_frame(f)
+                self.ser.set_frame(f)
                 self.kill.wait(1.0/self.FPS)
                 if (self.kill.is_set()):
                     return
@@ -37,6 +41,7 @@ class MainGUI:
     def window_destroy(self, event):
         Gtk.main_quit()
         self.player.stop()
+        self.serial.stop()
         self.log.info("Bye!")
 
     def __init__(self):
@@ -51,8 +56,14 @@ class MainGUI:
         self.window = self.builder.get_object("mainWindow")
         self.window.show()
 
+
         #self.laserviz.set_frame(p.frames[0])
-        self.player = FramePlayer(self.laserviz, p)
+        
+        self.serial = SerialComm(port)
+        self.serial.set_frame(p.frames[0])
+        self.serial.start()
+
+        self.player = FramePlayer(self.laserviz, p, self.serial)
 
         #Ctrl+C handling
         def handler(signum, frame):
@@ -69,7 +80,8 @@ class MainGUI:
         Gdk.threads_init()
         GLib.threads_init()
 
-        self.log.info("ECE 4760 Laser Controller Starting...")
+        self.log.info("ECE 4760 Laser Projector Controller")
+        self.log.info("Starting...")
 
         Gdk.threads_enter()
         Gtk.main()
