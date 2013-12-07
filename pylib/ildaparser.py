@@ -53,6 +53,11 @@ class IldaParser:
         except:
             pass
 
+    def get_initial_frame(self):
+        for f in self.get_frames():
+            return f
+        return None
+
     ## Generator to get frames from file
     def get_frames(self):
         i = 0

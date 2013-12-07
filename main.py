@@ -66,7 +66,7 @@ class MainGUI:
         
         if port is not None:
             self.serial = SerialComm(port)
-            self.serial.set_frame(p.frames[0])
+            self.serial.set_frame(p.get_initial_frame())
             self.serial.start()
         else:
             self.serial = None
