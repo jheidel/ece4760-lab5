@@ -61,8 +61,6 @@ class SerialComm(Thread):
         None indicates that scanning should stop and the laser should be blanked
         """
 
-        self.log.info("Set frame")
-
         if frame is not None:
             if frame != self.frame:
                 self.frame = frame
