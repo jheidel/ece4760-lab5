@@ -27,10 +27,10 @@ class IldaParseException(Exception):
 
 
 #helper for converting ctype strings
-def getStringFromMethod(method):
+def getStringFromMethod(method, arg):
     method.argtypes = ()
     method.restype = POINTER(c_char_p)
-    return cast(method(), c_char_p).value
+    return cast(method(arg), c_char_p).value
 
 class IldaParser:
 
@@ -40,40 +40,68 @@ class IldaParser:
         """
         self.frames = []
         clib.loadILDAFile(filename)
+
+
+        self.fileobject = clib.getIldaFilePointer()
+        self.doneparse = False
+
+
+    def __del__(self):
+        #TODO: verify
+        try:
+            clib.closeFile(self.fileobject)
+        except:
+            pass
+
+    ## Generator to get frames from file
+    def get_frames(self):
+        i = 0
         first = True
 
         while True:
-            clib.readHeader()
+            if self.doneparse or i < len(self.frames):
+                #print "Read frame %d from cache" % i
+                if self.doneparse and i >= len(self.frames):
+                    return
+                i += 1
+                yield self.frames[i-1]
+            else:
 
-            if first:
-                first = False
-                self.name = getStringFromMethod(clib.getName)
-                self.companyname = getStringFromMethod(clib.getCompanyName)
+                #print "Read frame %d from file" % i
+                clib.readHeader(self.fileobject)
 
-            if (not clib.isDataFrame()):
-                #print "Skipping non-data frame"
-                continue
-            
-            # Parse Header
-            points = []
+                if first:
+                    first = False
+                    self.name = getStringFromMethod(clib.getName, self.fileobject)
+                    self.companyname = getStringFromMethod(clib.getCompanyName, self.fileobject)
 
-            for i in range(clib.getEntries()):
-                clib.loadNextPoint()
-                points.append( ((pointData[0], #x
-                                pointData[1], #y
-                                pointData[2]), #z
-                                laserData[0] == 1)) #blanking bit
+                if (clib.getFormatType(self.fileobject) > 3):
+                    raise Exception("Unknown ilda format type: %d" % clib.getFormatType(self.fileobject))
+
+                if (not clib.isDataFrame(self.fileobject)):
+                    #print "Skipping non-data frame"
+                    continue
+                
+                # Parse Header
+                points = []
+
+                for j in range(clib.getEntries(self.fileobject)):
+                    clib.loadNextPoint(self.fileobject)
+                    points.append( ((pointData[0], #x
+                                    pointData[1], #y
+                                    pointData[2]), #z
+                                    laserData[0] == 1)) #blanking bit
 
 
+                self.frames.append(IldaFrame(points))
+                i += 1
 
-            self.frames.append(IldaFrame(points))
+                if (clib.getFrameNum(self.fileobject) >= clib.getTotalFrames(self.fileobject) - 1):
+                    self.doneparse = True
+                    #return #finished parsing
 
-            if (clib.getFrameNum() >= clib.getTotalFrames() - 1):
-                break #Finished parsing
+                yield self.frames[i-1]
 
-
-    def get_frames(self):
-        return self.frames
 
     def getTitle(self):
         return self.name + self.companyname
