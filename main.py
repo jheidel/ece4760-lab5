@@ -49,6 +49,10 @@ class MainGUI:
             self.serial.stop()
         self.log.info("Bye!")
 
+    def new_pps_selected(self, event):
+        if self.serial is not None:
+            self.serial.set_pps(int(self.ppsspinner.get_value()))
+
     def __init__(self):
         self.gladefile = "pylib/gui.glade"
 
@@ -61,6 +65,7 @@ class MainGUI:
         self.window = self.builder.get_object("mainWindow")
         self.window.show()
 
+        self.ppsspinner = self.builder.get_object("spinbutton1")
 
         #self.laserviz.set_frame(p.frames[0])
         
