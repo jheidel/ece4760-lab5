@@ -2,6 +2,7 @@ import sys, logging, signal
 from gi.repository import Gtk, Gdk, GLib
 
 from pylib.ildaparser import IldaParser
+from pylib.ildaframe import IldaFrame
 from pylib.laserviz import LaserViz
 from pylib.serialcomm import SerialComm
 from pylib.log import init_logging, with_logging
@@ -16,13 +17,15 @@ if len(sys.argv) > 2:
 else:
     port = None
 
+test_frame = True
+
 class FramePlayer(Thread):
     def __init__(self, lv, p, ser):
         Thread.__init__(self)
         self.lv = lv
         self.p = p
         self.kill = Event()
-        self.FPS = 15
+        self.FPS = 10
         self.ser = ser
         self.start()
 
@@ -31,6 +34,12 @@ class FramePlayer(Thread):
 
     def run(self):
         while True:
+            if test_frame:
+                f = IldaFrame.SqWaveTestPattern(x=True)
+                self.lv.set_frame(f)
+                if self.ser is not None:
+                    self.ser.set_frame(f)
+                return
             for f in self.p.get_frames():
                 self.lv.set_frame(f)
                 if self.ser is not None:

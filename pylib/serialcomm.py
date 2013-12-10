@@ -25,7 +25,7 @@ class SerialComm(Thread):
         self.kill = Event()
         self.c = Condition()
         self.frame = None
-        self.set_pps(12000) #default PPS
+        self.set_pps(800) #default PPS
 
     def set_point(self, x, y, blank):
         """
