@@ -1,4 +1,7 @@
 import sys, logging, signal
+import argparse
+from threading import Thread, Event
+from time import sleep
 from gi.repository import Gtk, Gdk, GLib
 
 from pylib.ildaparser import IldaParser
@@ -7,17 +10,25 @@ from pylib.laserviz import LaserViz
 from pylib.serialcomm import SerialComm
 from pylib.log import init_logging, with_logging
 
-from threading import Thread, Event
-from time import sleep
+parser = argparse.ArgumentParser(description='Laser Projector Software')
+parser.add_argument('port', nargs='?', help="Path to the serial port connected to the laser projector")
+parser.add_argument('filename', nargs='?', help="Path to the ILDA file you wish to display")
+parser.add_argument('--square', choices=['x', 'y'], help="Generate a square wave in the indicated axis") 
+args = parser.parse_args()
 
+if args.filename is None and args.square is None:
+    print "Must select either an ILDA file or indicate test mode using --square"
+    parser.print_help()
+    sys.exit()
 
-p = IldaParser(sys.argv[1])
-if len(sys.argv) > 2:
-    port = sys.argv[2]
+if args.square is not None:
+    test_frame = True
+    p = None
 else:
-    port = None
+    test_frame = False
+    p = IldaParser(args.filename)
 
-test_frame = True
+port = args.port
 
 class FramePlayer(Thread):
     def __init__(self, lv, p, ser):
@@ -76,13 +87,13 @@ class MainGUI:
 
         self.ppsspinner = self.builder.get_object("spinbutton1")
 
-        #self.laserviz.set_frame(p.frames[0])
-        
         if port is not None:
             self.serial = SerialComm(port)
-            self.serial.set_frame(p.get_initial_frame())
+            if p is not None:
+                self.serial.set_frame(p.get_initial_frame())
             self.serial.start()
         else:
+            self.log.warning("No serial port specified. Operating in view-only mode.")
             self.serial = None
 
         self.player = FramePlayer(self.laserviz, p, self.serial)
