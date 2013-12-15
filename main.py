@@ -46,7 +46,7 @@ class FramePlayer(Thread):
     def run(self):
         while True:
             if test_frame:
-                f = IldaFrame.SqWaveTestPattern(x=True)
+                f = IldaFrame.SqWaveTestPattern(x=(args.square=="x"))
                 self.lv.set_frame(f)
                 if self.ser is not None:
                     self.ser.set_frame(f)
