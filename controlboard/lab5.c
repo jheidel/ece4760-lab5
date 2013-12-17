@@ -8,13 +8,6 @@
 
 #define UART_BAUD  1000000 // 1 MBaud (max speed of FDTI chip)
 
-
-//#include "uart.h"
-
-// UART file descriptor
-// putchar and getchar are in uart.c
-//FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
-
 #define PIN_STATUS_LED	PIN2
 #define PIN_LASER_MOD	PIN3
 
@@ -32,7 +25,7 @@
 
 #define SUCCESS	0
 
-void debug_flash(void) {
+void startup_flash(void) {
 		SET(PORTD, 2);
 		_delay_ms(20);
 		CLR(PORTD, 2);
@@ -52,9 +45,6 @@ void indicate_serial_error(void) {
 		_delay_ms(100);
 	}
 }
-
-
-
 
 inline void SPI_TX(uint16_t data)
 {
@@ -94,7 +84,6 @@ void dac_setup(void) {
 void uart_setup(void) {
 
 // Setup baud rate & 8n1
-
 #if F_CPU < 2000000UL && defined(U2X)
   UCSR0A = _BV(U2X);             /* improve baud rate error by using 2x clk */
   UBRR0L = (F_CPU / (8UL * UART_BAUD)) - 1;
@@ -128,7 +117,6 @@ inline char uart_get(uint16_t* ret) {
 	return 0;
 }
 
-
 uint16_t x;
 uint16_t y;
 char ret;
@@ -154,19 +142,7 @@ inline void readwrite() {
 	}
 	
 	SPI_TX((y & 0x0FFF) | 0xC000); // Do it again (unknown reason; chip bug?)
-
 }
-
-
-/*
-void dac_write(uint16_t aValue, uint16_t bValue) {
-
-	SPI_TX((bValue & 0x0FFF) | 0x5000); // Set B
-	SPI_TX((bValue & 0x0FFF) | 0x5000); // Do it again (unknown reason; chip bug?)
-	SPI_TX((aValue & 0x0FFF) | 0xC000); // Set A (update both)
-	SPI_TX((aValue & 0x0FFF) | 0xC000); // Do it again (unknown reason; chip bug?)
-}
-*/
 
 void initialize(void) {
 
@@ -176,10 +152,9 @@ void initialize(void) {
 	dac_setup();
 	uart_setup();
 
-	debug_flash();
+	startup_flash();
 }
 
-uint16_t i;
 int main(void) {
 
 	initialize();
