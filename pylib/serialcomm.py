@@ -41,7 +41,8 @@ class SerialComm(Thread):
     #Conversion from ILDA point space to laser coordinates
     def set_ilda_point(self, x, y, blank):
         def map_pt(p):
-            return (p + 2**15) / 16
+            #return (p + 2**15) / 16
+            return int((((math.asin((float(p) / 2**15)) / math.asin(1.0)) + 1) / 2) * 4096)
         self.set_point(map_pt(x), map_pt(y), blank)
 
     def stop(self):

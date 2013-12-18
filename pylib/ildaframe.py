@@ -1,4 +1,5 @@
 
+import math
 
 
 
@@ -24,8 +25,8 @@ class IldaFrame:
     def get_mapped_points(self):
         pts = {}
         def map_pt(p):
-            #return ((p + 2**15) / 16) / 8 + 2048
-            return ((p + 2**15) / 16)
+            #return ((p + 2**15) / 16)
+            return int((((math.asin((float(p) / 2**15)) / math.asin(1.0)) + 1) / 2) * 4096)
         for ((x,y,z),b) in self.points:
             pts["x"] = map_pt(x)
             pts["y"] = map_pt(y)
